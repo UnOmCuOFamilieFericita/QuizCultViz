@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Complet (3 Întrebări) - Cultură Vizuală</title>
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --bg: #f3f4f6;
+            --card-bg: #ffffff;
+            --text: #1f2937;
+            --success: #10b981;
+            --error: #ef4444;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .quiz-container {
+            background-color: var(--card-bg);
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            padding: 30px;
+            width: 100%;
+            max-width: 650px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 24px;
+            margin-bottom: 5px;
+            color: var(--primary);
+        }
+
+        .progress {
+            font-size: 14px;
+            color: #6b7280;
+            margin-bottom: 20px;
+        }
+
+        .image-container {
+            width: 100%;
+            height: 320px;
+            border-radius: 8px;
+            overflow: hidden;
+            background-color: #e5e7eb;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 25px;
+            border: 2px solid #e5e7eb;
+            position: relative;
+        }
+
+        .image-container img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            z-index: 2;
+        }
+
+        .image-placeholder {
+            position: absolute;
+            color: #4b5563;
+            font-size: 15px;
+            font-weight: 500;
+            padding: 20px;
+            z-index: 1;
+        }
+
+        .section-title {
+            font-weight: 600;
+            margin: 18px 0 8px 0;
+            text-align: left;
+            font-size: 16px;
+            border-left: 4px solid var(--primary);
+            padding-left: 8px;
+        }
+
+        .options-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        button.option-btn {
+            background-color: #f9fafb;
+            border: 2px solid #d1d5db;
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+            outline: none;
+        }
+
+        button.option-btn:hover {
+            border-color: var(--primary);
+            background-color: #f5f3ff;
+        }
+
+        button.option-btn.selected {
+            background-color: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+
+        button.option-btn.correct {
+            background-color: var(--success);
+            border-color: var(--success);
+            color: white;
+        }
+
+        button.option-btn.wrong {
+            background-color: var(--error);
+            border-color: var(--error);
+            color: white;
+        }
+
+        .action-btn {
+            width: 100%;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 25px;
+            transition: background 0.2s;
+        }
+
+        .action-btn:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .feedback-message {
+            margin-top: 15px;
+            font-weight: 600;
+            font-size: 16px;
+            min-height: 24px;
+            white-space: pre-line;
+        }
+
+        .score-screen {
+            display: none;
+        }
+
+        .score-screen h2 {
+            color: var(--success);
+        }
+    </style>
+</head>
+<body>
+
+<div class="quiz-container" id="quiz-box">
+    <h1>Găsește Identitatea Operei</h1>
+    <div class="progress" id="progress-text">Întrebarea 1 din X</div>
+
+    <div class="image-container">
+        <div class="image-placeholder" id="placeholder-text">Se încarcă indiciul...</div>
+        <img id="art-image" src="" alt=" " onerror="handleImageError()">
+    </div>
+
+    <div class="section-title">1. Care este numele / titlul operei?</div>
+    <div class="options-group" id="title-options"></div>
+
+    <div class="section-title">2. Cine este autorul operei?</div>
+    <div class="options-group" id="author-options"></div>
+
+    <div class="section-title">3. Care este stilul / curentul / metoda?</div>
+    <div class="options-group" id="style-options"></div>
+
+    <div class="feedback-message" id="feedback"></div>
+    <button class="action-btn" id="action-button" onclick="checkAnswer()">Verifică Răspunsul</button>
+</div>
+
+<div class="quiz-container score-screen" id="score-box">
+    <h2>Felicitări! Ai terminat materia.</h2>
+    <p id="final-score">Scorul tău este: 0 / 0</p>
+    <button class="action-btn" onclick="restartQuiz()">Ia-o de la capăt</button>
+</div>
+
+<script>
+    // Baza de date extinsă cu trei proprietăți clare: corectTitle, correctAuthor, correctStyle
+    const quizData = [
+        { image: "1", hint: "Geantă personalizată din 2020", correctTitle: "Louis Vuitton Jeff Koons Rubens bag", correctAuthor: "Sara Cwynar", correctStyle: "Cultura Vizuală Contemporană" },
+        { image: "2", hint: "Una dintre cele 7 minuni ale lumii antice", correctTitle: "Reconstrucția Colosului din Rodos", correctAuthor: "Nespecificat", correctStyle: "Ilustrație Istorică / Referință" },
+        { image: "3", hint: "Decretul din Memphis scris în trei limbi", correctTitle: "Piatra din Rosetta (Rosetta Stone)", correctAuthor: "Necunoscut", correctStyle: "Artefact Arheologic Istoric" },
+        { image: "4", hint: "Scenă cu o perspectivă extrem de scurtată a corpului", correctTitle: "Lamentarea lui Hristos (Lamentation of Christ)", correctAuthor: "Andrea Mantegna", correctStyle: "Renaștere / Reprezentare" },
+        { image: "5", hint: "Scenă mitologică plină de dinamism și culori calde", correctTitle: "Răpirea Europei (The Rape of Europa)", correctAuthor: "Peter Paul Rubens", correctStyle: "Baroc / Reprezentare" },
+        { image: "6", hint: "Desene preistorice cu animale mari pe pereți", correctTitle: "Picturile rupestre din Peștera Lascaux", correctAuthor: "Oameni preistorici", correctStyle: "Artă Preistorică Reprezentativă" },
+        { image: "7", hint: "Tânăr zeu al vinului cu o coroană din frunze de viță", correctTitle: "Bacchus (1598)", correctAuthor: "Caravaggio", correctStyle: "Naturalism / Reprezentare" },
+        { image: "8", hint: "Băiat care pare că pășește fizic afară din ramă", correctTitle: "Escaping criticism (1874)", correctAuthor: "Pere Borrel del Caso", correctStyle: "Trompe-l'œil (Iluzionism)" },
+        { image: "9", hint: "Zâmbetul enigmatic cel mai faimos din lume", correctTitle: "Mona Lisa (La Gioconda)", correctAuthor: "Leonardo da Vinci", correctStyle: "Reprezentare / Portret figurativ" },
+        { image: "10", hint: "Peisaj rural faimos cu un car cu fân traversând un râu", correctTitle: "The Hay Wain (1821)", correctAuthor: "John Constable", correctStyle: "Idealism / Peisaj pastoral" },
+        { image: "11", hint: "O locomotivă ce trece prin ploaie pe un pod de fier", correctTitle: "Rain, Steam and Speed – Great Western Railway", correctAuthor: "J.M.W. Turner", correctStyle: "Tranziție către Impresionism" },
+        { image: "12", hint: "Femeie roșcată cu ochii închiși într-o stare de transă spirituală", correctTitle: "Beata Beatrix (aprox. 1864)", correctAuthor: "Dante Gabriel Rossetti", correctStyle: "Mișcarea Prerafaelită" },
+        { image: "13", hint: "Femeie nudă stând la picnic alături de bărbați îmbrăcați la costum", correctTitle: "The Luncheon on the Grass (Dejunul pe iarbă)", correctAuthor: "Edouard Manet", correctStyle: "Realism" },
+        { image: "14", hint: "O chelneriță care privește melancolic în oglinda din spatele ei", correctTitle: "Bar la Folies-Bergère", correctAuthor: "Edouard Manet", correctStyle: "Impresionism" },
+        { image: "15", hint: "Portul Le Havre în zori, pictat din tușe rapide", correctTitle: "Impression, Sunrise (Impresie, răsărit de soare)", correctAuthor: "Claude Monet", correctStyle: "Impresionism" },
+        { image: "16", hint: "Nuferi pe suprafața apei, fără orizont sau cer clar", correctTitle: "Water Lilies (Nuferi)", correctAuthor: "Claude Monet", correctStyle: "Impresionism" },
+        { image: "17", hint: "Grup de balerine surprinse în mișcare pe scenă", correctTitle: "Dancers (Balerine în roz)", correctAuthor: "Edgar Degas", correctStyle: "Impresionism (Pastel)" },
+        { image: "18", hint: "Portret din spate al unei fete cu părul blond prins în coadă", correctTitle: "Betty", correctAuthor: "Gerhard Richter", correctStyle: "Fotorealism" },
+        { image: "19", hint: "Chip contemporan pictat în nuanțe intense și fluide", correctTitle: "Single Painting", correctAuthor: "Marlene Dumas", correctStyle: "Portret Contemporan" },
+        { image: "20", hint: "O siluetă într-o canoe pe un lac misterios înconjurat de pădure", correctTitle: "100 years ago", correctAuthor: "Peter Doig", correctStyle: "Pictură Contemporană" },
+        { image: "21", hint: "Bărbat de spate pe o stâncă, privind marea de ceață", correctTitle: "Wanderer above the Sea of Fog", correctAuthor: "Caspar David Friedrich", correctStyle: "Romantism" },
+        { image: "22", hint: "Femeie alegorică ce poartă steagul Franței peste baricade", correctTitle: "Liberty Leading the People (Libertatea ghidează poporul)", correctAuthor: "Eugène Delacroix", correctStyle: "Romantism" },
+        { image: "23", hint: "Corăbii prinse într-o furtună violentă pe mare", correctTitle: "Dutch Boats in a Gale", correctAuthor: "J.M.W. Turner", correctStyle: "Romantism" },
+        { image: "24", hint: "Sculptură în marmură reprezentând doi îndrăgostiți îmbrățișați", correctTitle: "The Kiss (Sărutul)", correctAuthor: "Auguste Rodin", correctStyle: "Romantism (Sculptură)" },
+        { image: "25", hint: "Pictură modernă folosită ca identitate vizuală de muziciana Lorde", correctTitle: "Copertă Album 'Melodrama'", correctAuthor: "Lorde", correctStyle: "Expresivitate Modernă / Romantism" },
+        { image: "26", hint: "O siluetă agonizantă pe un pod sub un cer roșu-portocaliu", correctTitle: "The Scream (Strigătul)", correctAuthor: "Edvard Munch", correctStyle: "Expresionism" },
+        { image: "27", hint: "Grup de oameni prinși într-un dans frenetic și sălbatic", correctTitle: "Dance Around the Golden Calf", correctAuthor: "Emil Nolde", correctStyle: "Expresionism" },
+        { image: "28", hint: "Cerul nopții plin de vârtejuri galbene deasupra unui sat", correctTitle: "The Starry Night (Noapte înstelată)", correctAuthor: "Vincent van Gogh", correctStyle: "Expresionism (Rădăcini)" },
+        { image: "29", hint: "Femeie așezată cu genunchii ridicați, desenată în linii tensionate", correctTitle: "Sitting Woman with Legs Drawn Up", correctAuthor: "Egon Schiele", correctStyle: "Expresionism" },
+        { image: "30", hint: "Cadru de film alb-negru cu o umbră lungă a unui vampir pe scări", correctTitle: "Cadru din filmul Nosferatu", correctAuthor: "F.W. Murnau", correctStyle: "Expresionism (Cinema)" },
+        { image: "31", hint: "Cinci figuri feminine având corpuri geometrice și măști africane", correctTitle: "Les Demoiselles d’Avignon", correctAuthor: "Pablo Picasso", correctStyle: "Expresionism / Cubism" },
+        { image: "32", hint: "Un copac transformat treptat într-o rețea de linii curbe și gri", correctTitle: "The Gray Tree (Copacul gri)", correctAuthor: "Piet Mondrian", correctStyle: "Formalism / Abstracționism" },
+        { image: "33", hint: "O structură abstractă formată doar din linii negre scurte orizontale și verticale", correctTitle: "Composition nr. 10 Pier and Ocean", correctAuthor: "Piet Mondrian", correctStyle: "Formalism / Abstracționism" },
+        { image: "34", hint: "Un pătrat negru perfect pe un fundal alb", correctTitle: "Black Square (Pătratul negru)", correctAuthor: "Kazimir Malevich", correctStyle: "Minimalism / Abstracționism" },
+        { image: "35", hint: "Linii viu colorate paralele care formează semicercuri imense montate pe pânză", correctTitle: "Harran II", correctAuthor: "Frank Stella", correctStyle: "Minimalism" },
+        { image: "36", hint: "120 de cărămizi refractare așezate simplu pe podeaua muzeului", correctTitle: "Equivalent VIII", correctAuthor: "Carl Andre", correctStyle: "Minimalism (Sculptură)" },
+        { image: "37", hint: "O structură mecanică bizară asemănătoare unui elefant din metal", correctTitle: "The Elephant Celebes", correctAuthor: "Max Ernst", correctStyle: "Suprarealism" },
+        { image: "38", hint: "Creaturi cu picioare lungi ca niște păianjeni pășind prin deșert", correctTitle: "The Temptation of St. Anthony", correctAuthor: "Salvador Dalí", correctStyle: "Suprarealism" },
+        { image: "39", hint: "Un ochi mare în interiorul căruia se vede un cer albastru cu nori", correctTitle: "False Mirror (Oglinda falsă)", correctAuthor: "René Magritte", correctStyle: "Suprarealism" },
+        { image: "40", hint: "O stradă întunecată la lumina felinarului sub un cer senin de zi", correctTitle: "L'Empire des Lumières (Imperiul luminilor)", correctAuthor: "René Magritte", correctStyle: "Suprarealism" },
+        { image: "41", hint: "Colaj care include o reclamă de frigider și forme feminine decupate", correctTitle: "$he", correctAuthor: "Richard Hamilton", correctStyle: "Pop Art" },
+        { image: "42", hint: "Celebra copertă colorată de album plină de figuri istorice și flori", correctTitle: "Sgt. Pepper’s Lonely Hearts Club Band", correctAuthor: "Peter Blake", correctStyle: "Pop Art (Copertă Beatles)" },
+        { image: "43", hint: "Un avion militar de vânătoare care explodează în stil de bandă desenată", correctTitle: "Whaam!", correctAuthor: "Roy Lichtenstein", correctStyle: "Pop Art" },
+        { image: "44", hint: "Conserve metalice identice de supă aliniate ca pe raft", correctTitle: "Campbell's Soup Cans", correctAuthor: "Andy Warhol", correctStyle: "Pop Art" },
+        { image: "45", hint: "Portretul multiplicat în culori stridente al unei actrițe faimoase", correctTitle: "Marilyn Monroe", correctAuthor: "Andy Warhol", correctStyle: "Pop Art" },
+        { image: "46", hint: "O pânză uriașă alb-negru ce redă haosul, un taur și suferința războiului", correctTitle: "Guernica", correctAuthor: "Pablo Picasso", correctStyle: "Hermeneutică (Interpretare)" },
+        { image: "47", hint: "Un pisoar din porțelan alb întors invers și semnat 'R. Mutt 1917'", correctTitle: "Fountain (Fântâna)", correctAuthor: "Marcel Duchamp", correctStyle: "Avangardă / Readymade" },
+        { image: "48", hint: "O scaun fizic pliabil lângă fotografia sa și definiția din dicționar a cuvântului", correctTitle: "One and three chairs (Una și trei scaune)", correctAuthor: "Joseph Kosuth", correctStyle: "Artă Conceptuală" },
+        { image: "49", hint: "O banană reală lipită de perete cu o bandă adezivă gri", correctTitle: "Comedian", correctAuthor: "Maurizio Cattelan", correctStyle: "Artă Conceptuală" }
+    ];
+
+    // Liste unice folosite pentru generarea opțiunilor greșite
+    const allTitles = [...new Set(quizData.map(d => d.correctTitle))];
+    const allAuthors = [...new Set(quizData.map(d => d.correctAuthor))];
+    const allStyles = [...new Set(quizData.map(d => d.correctStyle))];
+
+    let currentQuestionIndex = 0;
+    let score = 0;
+    
+    let selectedTitle = null;
+    let selectedAuthor = null;
+    let selectedStyle = null;
+    let isChecked = false;
+    let imageAttempts = 0;
+
+    const artImage = document.getElementById("art-image");
+    const placeholderText = document.getElementById("placeholder-text");
+    const progressText = document.getElementById("progress-text");
+    
+    const titleOptionsContainer = document.getElementById("title-options");
+    const authorOptionsContainer = document.getElementById("author-options");
+    const styleOptionsContainer = document.getElementById("style-options");
+    
+    const feedbackText = document.getElementById("feedback");
+    const actionButton = document.getElementById("action-button");
+
+    function shuffle(array) {
+        return array.sort(() => Math.random() - 0.5);
+    }
+
+    function generateOptions(correctItem, allItemsPool) {
+        let options = [correctItem];
+        let filteredPool = allItemsPool.filter(item => item !== correctItem);
+        shuffle(filteredPool);
+        options = options.concat(filteredPool.slice(0, 3));
+        return shuffle(options);
+    }
+
+    function handleImageError() {
+        const currentQuestion = quizData[currentQuestionIndex];
+        imageAttempts++;
+        
+        if (imageAttempts === 1) artImage.src = currentQuestion.image + ".png";
+        else if (imageAttempts === 2) artImage.src = currentQuestion.image + ".jpeg";
+        else if (imageAttempts === 3) artImage.src = currentQuestion.image + ".PNG";
+        else if (imageAttempts === 4) artImage.src = currentQuestion.image + ".JPG";
+    }
+
+    function loadQuestion() {
+        isChecked = false;
+        selectedTitle = null;
+        selectedAuthor = null;
+        selectedStyle = null;
+        feedbackText.innerText = "";
+        actionButton.innerText = "Verifică Răspunsul";
+
+        const currentQuestion = quizData[currentQuestionIndex];
+        progressText.innerText = `Întrebarea ${currentQuestionIndex + 1} din ${quizData.length}`;
+        
+        imageAttempts = 0;
+        artImage.src = currentQuestion.image + ".jpg"; 
+        placeholderText.innerText = `Indiciu: ${currentQuestion.hint}`;
+
+        // 1. Generare Opțiuni Titlu
+        const titleOptions = generateOptions(currentQuestion.correctTitle, allTitles);
+        titleOptionsContainer.innerHTML = "";
+        titleOptions.forEach(title => {
+            const btn = document.createElement("button");
+            btn.className = "option-btn";
+            btn.innerText = title;
+            btn.onclick = () => selectTitle(btn, title);
+            titleOptionsContainer.appendChild(btn);
+        });
+
+        // 2. Generare Opțiuni Autor
+        const authorOptions = generateOptions(currentQuestion.correctAuthor, allAuthors);
+        authorOptionsContainer.innerHTML = "";
+        authorOptions.forEach(author => {
+            const btn = document.createElement("button");
+            btn.className = "option-btn";
+            btn.innerText = author;
+            btn.onclick = () => selectAuthor(btn, author);
+            authorOptionsContainer.appendChild(btn);
+        });
+
+        // 3. Generare Opțiuni Stil
+        const styleOptions = generateOptions(currentQuestion.correctStyle, allStyles);
+        styleOptionsContainer.innerHTML = "";
+        styleOptions.forEach(style => {
+            const btn = document.createElement("button");
+            btn.className = "option-btn";
+            btn.innerText = style;
+            btn.onclick = () => selectStyle(btn, style);
+            styleOptionsContainer.appendChild(btn);
+        });
+    }
+
+    function selectTitle(button, title) {
+        if (isChecked) return;
+        titleOptionsContainer.querySelectorAll(".option-btn").forEach(b => b.classList.remove("selected"));
+        button.classList.add("selected");
+        selectedTitle = title;
+    }
+
+    function selectAuthor(button, author) {
+        if (isChecked) return;
+        authorOptionsContainer.querySelectorAll(".option-btn").forEach(b => b.classList.remove("selected"));
+        button.classList.add("selected");
+        selectedAuthor = author;
+    }
+
+    function selectStyle(button, style) {
+        if (isChecked) return;
+        styleOptionsContainer.querySelectorAll(".option-btn").forEach(b => b.classList.remove("selected"));
+        button.classList.add("selected");
+        selectedStyle = style;
+    }
+
+    function checkAnswer() {
+        if (isChecked) {
+            currentQuestionIndex++;
+            if (currentQuestionIndex < quizData.length) {
+                loadQuestion();
+            } else {
+                showScore();
+            }
+            return;
+        }
+
+        if (!selectedTitle || !selectedAuthor || !selectedStyle) {
+            feedbackText.innerText = "Trebuie să selectezi toate cele 3 răspunsuri înainte de verificare!";
+            feedbackText.style.color = "var(--error)";
+            return;
+        }
+
+        const currentQuestion = quizData[currentQuestionIndex];
+        isChecked = true;
+
+        // Colorare butoane Titluri
+        titleOptionsContainer.querySelectorAll(".option-btn").forEach(btn => {
+            if (btn.innerText === currentQuestion.correctTitle) btn.classList.add("correct");
+            else if (btn.classList.contains("selected")) btn.classList.add("wrong");
+        });
+
+        // Colorare butoane Autori
+        authorOptionsContainer.querySelectorAll(".option-btn").forEach(btn => {
+            if (btn.innerText === currentQuestion.correctAuthor) btn.classList.add("correct");
+            else if (btn.classList.contains("selected")) btn.classList.add("wrong");
+        });
+
+        // Colorare butoane Stiluri
+        styleOptionsContainer.querySelectorAll(".option-btn").forEach(btn => {
+            if (btn.innerText === currentQuestion.correctStyle) btn.classList.add("correct");
+            else if (btn.classList.contains("selected")) btn.classList.add("wrong");
+        });
+
+        const isTitleCorrect = selectedTitle === currentQuestion.correctTitle;
+        const isAuthorCorrect = selectedAuthor === currentQuestion.correctAuthor;
+        const isStyleCorrect = selectedStyle === currentQuestion.correctStyle;
+
+        if (isTitleCorrect && isAuthorCorrect && isStyleCorrect) {
+            feedbackText.innerText = "Excelent! Toate cele 3 elemente sunt corecte.";
+            feedbackText.style.color = "var(--success)";
+            score++;
+        } else {
+            feedbackText.innerText = `Răspunsul corect era:\nNume: ${currentQuestion.correctTitle}\nAutor: ${currentQuestion.correctAuthor}\nCurent: ${currentQuestion.correctStyle}`;
+            feedbackText.style.color = "var(--error)";
+        }
+
+        actionButton.innerText = currentQuestionIndex + 1 === quizData.length ? "Vezi Rezultatul Final" : "Următoarea Întrebare";
+    }
+
+    function showScore() {
+        document.getElementById("quiz-box").style.display = "none";
+        const scoreBox = document.getElementById("score-box");
+        scoreBox.style.display = "block";
+        document.getElementById("final-score").innerText = `Ai obținut ${score} din ${quizData.length} puncte!`;
+    }
+
+    function restartQuiz() {
+        currentQuestionIndex = 0;
+        score = 0;
+        document.getElementById("score-box").style.display = "none";
+        document.getElementById("quiz-box").style.display = "block";
+        loadQuestion();
+    }
+
+    loadQuestion();
+</script>
+
+</body>
+</html>
